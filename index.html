@@ -1,0 +1,645 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sedulous - Class Scheduler</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@300;400;500;600;700&display=swap');
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Hind Siliguri', sans-serif;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+
+        body {
+            background-color: #f4f7f6;
+            color: #333;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        /* Header Styling */
+        header {
+            background-color: #2c3e50;
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+            z-index: 10;
+        }
+        
+        .header-top {
+            text-align: center;
+            font-size: 24px;
+            font-weight: 700;
+            letter-spacing: 1px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .search-box {
+            flex-grow: 1;
+            padding: 10px;
+            border-radius: 20px;
+            border: none;
+            outline: none;
+            font-size: 14px;
+            user-select: auto;
+        }
+
+        .add-btn {
+            background-color: #e74c3c;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            font-size: 24px;
+            cursor: pointer;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+        }
+
+        /* Today's Count */
+        .today-count {
+            text-align: center;
+            padding: 10px;
+            background-color: #e8f8f5;
+            color: #16a085;
+            font-weight: 600;
+            font-size: 16px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            z-index: 9;
+        }
+
+        /* List Area */
+        .list-container {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding: 15px;
+            padding-bottom: 30px;
+        }
+
+        .schedule-card {
+            background: white;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 15px;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.08);
+            position: relative;
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+
+        .schedule-card:active {
+            transform: scale(0.98);
+        }
+
+        .card-top {
+            text-align: center;
+            margin-bottom: 15px;
+            border-bottom: 1px dashed #ddd;
+            padding-bottom: 10px;
+        }
+
+        .course-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2c3e50;
+        }
+
+        .class-type {
+            font-size: 14px;
+            color: #7f8c8d;
+            margin-top: 3px;
+        }
+
+        .card-bottom {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+        }
+
+        .bottom-left, .bottom-right {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        .bottom-right {
+            text-align: right;
+        }
+
+        .label {
+            font-size: 12px;
+            color: #95a5a6;
+        }
+
+        .value {
+            font-size: 15px;
+            font-weight: 600;
+            color: #34495e;
+        }
+
+        /* Timer Colors */
+        .timer {
+            font-size: 18px;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 6px;
+            margin-top: 5px;
+            letter-spacing: 1px;
+            display: inline-block;
+            transition: background 0.3s, color 0.3s;
+        }
+
+        .timer.green {
+            background: #eafaf1;
+            color: #27ae60;
+        }
+
+        .timer.red {
+            background: #fdeaea;
+            color: #e74c3c;
+        }
+
+        /* Custom Toast Notification (To prevent freezing) */
+        .toast-container {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 10000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            pointer-events: none;
+        }
+
+        .toast {
+            background: #e74c3c;
+            color: white;
+            padding: 15px 20px;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            animation: slideIn 0.3s forwards, fadeOut 0.5s 4.5s forwards;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(120%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        @keyframes fadeOut {
+            from { transform: translateX(0); opacity: 1; }
+            to { transform: translateX(120%); opacity: 0; }
+        }
+
+        /* Modal / Form */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 100;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: all;
+        }
+
+        .modal-content {
+            background: white;
+            width: 90%;
+            max-width: 400px;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+            user-select: auto;
+        }
+
+        .modal-title {
+            text-align: center;
+            margin-bottom: 15px;
+            color: #2c3e50;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 13px;
+            color: #555;
+            margin-bottom: 5px;
+        }
+
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            outline: none;
+            user-select: auto;
+        }
+
+        .days-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .day-checkbox {
+            display: none;
+        }
+
+        .day-label {
+            padding: 5px 10px;
+            background: #ecf0f1;
+            border-radius: 20px;
+            font-size: 13px;
+            cursor: pointer;
+            color: #7f8c8d;
+            transition: 0.2s;
+        }
+
+        .day-checkbox:checked + .day-label {
+            background: #3498db;
+            color: white;
+        }
+
+        .modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .btn {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+        }
+
+        .btn-cancel {
+            background: #e74c3c;
+            color: white;
+        }
+
+        .btn-save {
+            background: #2ecc71;
+            color: white;
+        }
+    </style>
+    <link rel="manifest" href="manifest.json">
+</head>
+<body>
+
+    <header>
+        <div class="header-top">Sedulous For BIOM Classes</div>
+        <div class="header-actions">
+            <input type="text" id="search" class="search-box" placeholder="Search course by name...">
+            <button class="add-btn" id="addBtn">+</button>
+        </div>
+    </header>
+
+    <div id="todayCount" class="today-count">আজকের বাকি শিডিউল: ০ টি</div>
+
+    <div class="list-container" id="listContainer"></div>
+
+    <div class="modal-overlay" id="modal">
+        <div class="modal-content">
+            <h2 class="modal-title">নতুন শিডিউল যোগ করুন</h2>
+            <form id="scheduleForm">
+                <div class="form-group">
+                    <label>Course Name</label>
+                    <input type="text" id="courseName" required placeholder="কোরআন শিক্ষা/আরবি ভাষা শিক্ষা ">
+                </div>
+                <div class="form-group">
+                    <label>Class Type</label>
+                    <input type="text" id="classType" required placeholder="মেইন ক্লাস /আমুখতা ক্লাস">
+                </div>
+                <div class="form-group">
+                    <label>Batch Number</label>
+                    <input type="text" id="batchNumber" required placeholder="২৭">
+                </div>
+                <div class="form-group">
+                    <label>Class Time</label>
+                    <input type="time" id="classTime" required>
+                </div>
+                <div class="form-group">
+                    <label>Class Date (Select Days)</label>
+                    <div class="days-container">
+                        <label><input type="checkbox" class="day-checkbox" value="0"><span class="day-label">Sun</span></label>
+                        <label><input type="checkbox" class="day-checkbox" value="1"><span class="day-label">Mon</span></label>
+                        <label><input type="checkbox" class="day-checkbox" value="2"><span class="day-label">Tue</span></label>
+                        <label><input type="checkbox" class="day-checkbox" value="3"><span class="day-label">Wed</span></label>
+                        <label><input type="checkbox" class="day-checkbox" value="4"><span class="day-label">Thu</span></label>
+                        <label><input type="checkbox" class="day-checkbox" value="5"><span class="day-label">Fri</span></label>
+                        <label><input type="checkbox" class="day-checkbox" value="6"><span class="day-label">Sat</span></label>
+                    </div>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-cancel" id="cancelBtn">Cancel</button>
+                    <button type="submit" class="btn btn-save">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        if ("Notification" in window) {
+            Notification.requestPermission();
+        }
+
+        const dayNames =["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        let schedules = JSON.parse(localStorage.getItem('sedulous_schedules')) ||[];
+
+        const addBtn = document.getElementById('addBtn');
+        const modal = document.getElementById('modal');
+        const cancelBtn = document.getElementById('cancelBtn');
+        const form = document.getElementById('scheduleForm');
+        const listContainer = document.getElementById('listContainer');
+        const searchInput = document.getElementById('search');
+        const todayCountEl = document.getElementById('todayCount');
+
+        addBtn.addEventListener('click', () => modal.classList.add('active'));
+        cancelBtn.addEventListener('click', () => {
+            modal.classList.remove('active');
+            form.reset();
+        });
+
+        function toBengaliNum(num) {
+            const bnDigits =['০','১','২','৩','৪','৫','৬','৭','৮','৯'];
+            return num.toString().split('').map(c => bnDigits[c] || c).join('');
+        }
+
+        function formatTo12Hour(time24) {
+            let [hours, minutes] = time24.split(':');
+            hours = parseInt(hours);
+            const ampm = hours >= 12 ? 'PM' : 'AM';
+            hours = hours % 12 || 12;
+            return `${hours}:${minutes} ${ampm}`;
+        }
+
+        function getNextOccurrence(selectedDays, time24) {
+            const now = new Date();
+            const [h, m] = time24.split(':').map(Number);
+            let nextDate = null;
+
+            for (let i = 0; i <= 7; i++) {
+                let testDate = new Date(now.getFullYear(), now.getMonth(), now.getDate() + i, h, m, 0);
+                
+                if (selectedDays.includes(testDate.getDay())) {
+                    if (testDate.getTime() > now.getTime()) {
+                        nextDate = testDate;
+                        break;
+                    }
+                }
+            }
+            return nextDate ? nextDate.getTime() : null;
+        }
+
+        form.addEventListener('submit', (e) => {
+            e.preventDefault();
+            const selectedDays = Array.from(document.querySelectorAll('.day-checkbox:checked')).map(cb => parseInt(cb.value));
+            
+            if (selectedDays.length === 0) {
+                alert("অনুগ্রহ করে অন্তত একটি দিন সিলেক্ট করুন।");
+                return;
+            }
+
+            const newSchedule = {
+                id: Date.now().toString(),
+                courseName: document.getElementById('courseName').value,
+                classType: document.getElementById('classType').value,
+                batchNumber: document.getElementById('batchNumber').value,
+                classTime: document.getElementById('classTime').value,
+                days: selectedDays
+            };
+
+            schedules.push(newSchedule);
+            saveAndRender();
+            modal.classList.remove('active');
+            form.reset();
+        });
+
+        function setupLongPress(card, id) {
+            let pressTimer;
+            const startPress = (e) => {
+                if(e.type === 'mousedown' && e.button !== 0) return; // Ignore right click
+                pressTimer = setTimeout(() => {
+                    if (confirm("আপনি কি এই শিডিউলটি স্থায়ীভাবে ডিলিট করতে চান?")) {
+                        schedules = schedules.filter(s => s.id !== id);
+                        saveAndRender();
+                    }
+                }, 2000); 
+            };
+
+            const cancelPress = () => clearTimeout(pressTimer);
+
+            card.addEventListener('mousedown', startPress);
+            card.addEventListener('touchstart', startPress);
+
+            card.addEventListener('mouseup', cancelPress);
+            card.addEventListener('mouseleave', cancelPress);
+            card.addEventListener('touchend', cancelPress);
+            card.addEventListener('touchmove', cancelPress); 
+        }
+
+        searchInput.addEventListener('input', renderSchedules);
+
+        function saveAndRender() {
+            localStorage.setItem('sedulous_schedules', JSON.stringify(schedules));
+            renderSchedules();
+        }
+
+        // আজকের বাকি ক্লাসের নিখুঁত সংখ্যা গণনা
+        function updateTodayCount() {
+            const now = Date.now();
+            const endOfDay = new Date();
+            endOfDay.setHours(23, 59, 59, 999);
+            
+            let count = 0;
+            schedules.forEach(s => {
+                if (s.next && s.next > now && s.next <= endOfDay.getTime()) {
+                    count++;
+                }
+            });
+            todayCountEl.innerText = `আজকের বাকি শিডিউল: ${toBengaliNum(count)} টি`;
+        }
+
+        function renderSchedules() {
+            const filterText = searchInput.value.toLowerCase();
+            const now = Date.now();
+
+            schedules.forEach(s => {
+                s.next = getNextOccurrence(s.days, s.classTime);
+            });
+
+            schedules.sort((a, b) => a.next - b.next);
+            listContainer.innerHTML = '';
+
+            const filtered = schedules.filter(s => s.courseName.toLowerCase().includes(filterText));
+
+            filtered.forEach(s => {
+                const daysStr = s.days.map(d => dayNames[d]).join(', ');
+                const time12h = formatTo12Hour(s.classTime);
+
+                const diff = s.next - now;
+                const timerText = formatCountdown(diff);
+                const timerClass = diff <= 10 * 60 * 1000 ? 'red' : 'green'; 
+
+                const card = document.createElement('div');
+                card.className = 'schedule-card';
+                card.innerHTML = `
+                    <div class="card-top">
+                        <div class="course-name">${s.courseName}</div>
+                        <div class="class-type">${s.classType}</div>
+                    </div>
+                    <div class="card-bottom">
+                        <div class="bottom-left">
+                            <div>
+                                <div class="label">Batch</div>
+                                <div class="value">${s.batchNumber}</div>
+                            </div>
+                            <div>
+                                <div class="label">Class Days</div>
+                                <div class="value">${daysStr}</div>
+                            </div>
+                        </div>
+                        <div class="bottom-right">
+                            <div>
+                                <div class="label">Class Time</div>
+                                <div class="value">${time12h}</div>
+                            </div>
+                            <div>
+                                <div class="label">Time Remaining</div>
+                                <div class="timer ${timerClass}" id="timer-${s.id}">${timerText}</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+
+                setupLongPress(card, s.id);
+                listContainer.appendChild(card);
+            });
+
+            updateTodayCount();
+        }
+
+        // Custom Toast function - কখনোই টাইমারকে ফ্রিজ হতে দিবে না
+        function showToast(title, body) {
+            let container = document.getElementById('toastContainer');
+            if (!container) {
+                container = document.createElement('div');
+                container.id = 'toastContainer';
+                container.className = 'toast-container';
+                document.body.appendChild(container);
+            }
+            const toast = document.createElement('div');
+            toast.className = 'toast';
+            toast.innerHTML = `<div style="font-weight:700; font-size:16px;">${title}</div><div style="margin-top:5px; font-size:13px;">${body}</div>`;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                if(toast.parentElement) toast.remove();
+            }, 5000);
+        }
+
+        function sendNotification(title, body) {
+            if ("Notification" in window && Notification.permission === "granted") {
+                new Notification(title, { body: body, icon: "https://cdn-icons-png.flaticon.com/512/3114/3114883.png" });
+            } else {
+                showToast(title, body);
+            }
+        }
+
+        function formatCountdown(ms) {
+            if (ms <= 0) return "00:00:00:00";
+            let s = Math.floor(ms / 1000);
+            let m = Math.floor(s / 60);
+            let h = Math.floor(m / 60);
+            let d = Math.floor(h / 24);
+            
+            h %= 24; m %= 60; s %= 60;
+            const pad = val => String(val).padStart(2, '0');
+            return `${pad(d)}:${pad(h)}:${pad(m)}:${pad(s)}`;
+        }
+
+        function updateTimersDOM() {
+            const now = Date.now();
+            let needsReSort = false;
+
+            schedules.forEach(s => {
+                const timerEl = document.getElementById(`timer-${s.id}`);
+                if (!timerEl) return;
+
+                let diff = s.next - now;
+
+                if (diff <= 0) {
+                    sendNotification(`ক্লাস শুরু হয়েছে!`, `${s.courseName} - ${s.batchNumber} ব্যাচের ক্লাস এখন শুরু হচ্ছে।`);
+                    
+                    s.next = getNextOccurrence(s.days, s.classTime);
+                    diff = s.next - now;
+                    needsReSort = true;
+                }
+
+                timerEl.innerText = formatCountdown(diff);
+
+                if (diff <= 10 * 60 * 1000) {
+                    timerEl.classList.add('red');
+                    timerEl.classList.remove('green');
+                } else {
+                    timerEl.classList.add('green');
+                    timerEl.classList.remove('red');
+                }
+            });
+
+            if (needsReSort) {
+                saveAndRender();
+            } else {
+                updateTodayCount();
+            }
+        }
+
+        renderSchedules();
+        setInterval(updateTimersDOM, 1000);
+
+    </script>
+    // সার্ভিস ওয়ার্কার রেজিস্ট্রেশন
+if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js')
+            .then(reg => console.log('Service Worker: Registered'))
+            .catch(err => console.log(`Service Worker: Error: ${err}`));
+    });
+}
+</body>
+</html>
